@@ -1,28 +1,32 @@
 <?php
+session_start();
 
-     session_start();
-     $host="localhost";
-     $user="root";
-     $password="";
-     $db="schoolproject";
-     $data=mysqli_connect($host,$user,$password,$db);
+if (!isset($_SESSION['username'])) {
+    header("location:login.php");
+    exit();
+}
+if ($_SESSION['usertype'] == 'student') {
+    header("location:login.php");
+    exit();
+}
 
+include 'dbcon.php';
 
-     if($_GET['student_id'])
-     {
+if (isset($_GET['student_id']) && is_numeric($_GET['student_id'])) {
 
-        $user_id=$_GET['student_id'];
+    $user_id = (int) $_GET['student_id'];
 
-        $sql="DELETE FROM user WHERE id='$user_id' ";
-        $result=mysqli_query($data,$sql);
+    $stmt = mysqli_prepare($data, "DELETE FROM user WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $user_id);
+    $result = mysqli_stmt_execute($stmt);
 
+    if ($result) {
+        $_SESSION['message'] = "Student deleted successfully.";
+    } else {
+        $_SESSION['message'] = "Failed to delete student.";
+    }
+}
 
-        if($result)
-        {
-            $_SESSION['message']='Delete Student is Successful';
-            header("location:view_student.php");
-        }
-     }
-
-
+header("location:view_student.php");
+exit();
 ?>

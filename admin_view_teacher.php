@@ -2,96 +2,52 @@
 session_start();
 error_reporting(0);
 
-     if(!isset($_SESSION['username']))
-     {
+if (!isset($_SESSION['username'])) {
+    header("location:login.php");
+    exit();
+}
+if ($_SESSION['usertype'] == 'student') {
+    header("location:login.php");
+    exit();
+}
 
-        header("location:login.php");
+include 'dbcon.php';
 
+if (isset($_GET['teacher_id']) && is_numeric($_GET['teacher_id'])) {
+    $t_id = (int) $_GET['teacher_id'];
 
-     }
-     elseif($_SESSION['usertype']=='student')
-     {
-        header("location:login.php");
-     }
+    $stmt = mysqli_prepare($data, "DELETE FROM teacher WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $t_id);
+    $result2 = mysqli_stmt_execute($stmt);
 
-     $host="localhost";
-$user="root";
-$password="";
-$db="schoolproject";
-
-$data = mysqli_connect($host,$user,$password,$db);
-$sql="SELECT * FROM teacher";
-$result=mysqli_query($data,$sql);
-
-if($_GET['teacher_id'])
-{
-    $t_id=$_GET['teacher_id'];
-    $sql2="DELETE FROM teacher WHERE id='$t_id' ";
-    $result2=mysqli_query($data,$sql2);
-    if($result2)
-    {
+    if ($result2) {
         header('location:admin_view_teacher.php');
+        exit();
     }
 }
 
+$sql    = "SELECT * FROM teacher";
+$result = mysqli_query($data, $sql);
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
-        <meta charset="utf-8">
-        <title>Admin Dashboard</title>
-
-        <?php
-        
-        include 'admin_css.php'
-        ?>
-
-        <style type="text/css">
-            .table_th
-            {
-
-            padding: 20px;
-            font-size: 20px;
-
-            }
-              .table_td
-            {
-
-            padding: 20px;
-            background-color:skyblue;
-            font-size: 20px;
-
-            }
-            .btn.btn-danger {
-            background-color: red; 
-            border: none; 
-            color: white; 
-            padding: 10px 20px; 
-            font-size: 16px; 
-            border-radius: 10px; 
-            cursor: pointer;
-            transition: background-color 0.3s ease; 
-            }
-
-           .btn.btn-danger:hover {
-            background-color: darkblue; 
-            }
-        </style>
-
-       
-
+    <meta charset="utf-8">
+    <title>View Teachers</title>
+    <?php include 'admin_css.php'; ?>
+    <style type="text/css">
+        .table_th { padding: 20px; font-size: 20px; }
+        .table_td { padding: 20px; background-color: skyblue; font-size: 16px; }
+    </style>
 </head>
 <body>
-         <?php
-         include 'admin_sidebar.php';
-         ?>
+    <?php include 'admin_sidebar.php'; ?>
 
-         <div class= "content">
-            <center>
+    <div class="content">
+        <center>
             <h1>View All Teacher Data</h1>
 
-            <table border="1px">
+            <table border="1">
                 <tr>
                     <th class="table_th">Teacher Name</th>
                     <th class="table_th">About Teacher</th>
@@ -100,28 +56,28 @@ if($_GET['teacher_id'])
                     <th class="table_th">Update</th>
                 </tr>
 
-                <?php
-                
-                while($info=$result->fetch_assoc())
-                {
-                ?>
-
+                <?php while ($info = mysqli_fetch_assoc($result)): ?>
                 <tr>
-                    <td class="table_td"><?php echo "{$info['name']}" ?></td>
-                    <td class="table_td"><?php echo "{$info['description']}" ?></td>
-                    <td class="table_td"><image height="100px" width="100px" src="<?php echo "{$info['image']}" ?>"></td>
-                    <td class="table_td"><?php echo"<a onClick=\"javascript:return confirm('Are You Sure To Delete this');\" class='btn btn-danger'
-                     href='admin_view_teacher.php?teacher_id={$info['id']}'>Delete</a>"; ?></td>
-                      <td class="table_td">
-                       <?php echo "<a href='update_student.php?student_id={$info['id']}' style='background-color: #1e90ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 14px; display: inline-block; text-align: center;'>Update</a>"; ?>
-                   </td>
+                    <td class="table_td"><?php echo htmlspecialchars($info['name']); ?></td>
+                    <td class="table_td"><?php echo htmlspecialchars($info['description']); ?></td>
+                    <td class="table_td">
+                        <img height="100" width="100" src="<?php echo htmlspecialchars($info['image']); ?>" alt="Teacher Image">
+                    </td>
+                    <td class="table_td">
+                        <a onclick="return confirm('Are you sure you want to delete this teacher?')"
+                           href="admin_view_teacher.php?teacher_id=<?php echo $info['id']; ?>"
+                           class="btn btn-danger">Delete</a>
+                    </td>
+                    <td class="table_td">
+                        <a href="update_teacher.php?teacher_id=<?php echo $info['id']; ?>"
+                           style="background-color:#1e90ff;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">
+                            Update
+                        </a>
+                    </td>
                 </tr>
-                <?php 
-                } 
-            ?>
-                
+                <?php endwhile; ?>
             </table>
         </center>
-         </div>
+    </div>
 </body>
 </html>

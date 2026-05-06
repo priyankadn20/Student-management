@@ -2,135 +2,124 @@
 session_start();
 error_reporting(0);
 
-     if(!isset($_SESSION['username']))
-     {
+if (!isset($_SESSION['username'])) {
+    header("location:login.php");
+    exit();
+}
+if ($_SESSION['usertype'] == 'student') {
+    header("location:login.php");
+    exit();
+}
 
-        header("location:login.php");
+include 'dbcon.php';
 
+if (!isset($_GET['student_id']) || !is_numeric($_GET['student_id'])) {
+    header("location:view_student.php");
+    exit();
+}
 
-     }
-     elseif($_SESSION['usertype']=='student')
-     {
-        header("location:login.php");
-     }
+$id = (int) $_GET['student_id'];
 
-     $host="localhost";
-     $user="root";
-     $password="";
-     $db="schoolproject";
+$stmt = mysqli_prepare($data, "SELECT * FROM user WHERE id = ?");
+mysqli_stmt_bind_param($stmt, "i", $id);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$info   = mysqli_fetch_assoc($result);
 
-     $data=mysqli_connect($host,$user,$password,$db);
-     $id=$_GET['student_id'];
+if (!$info) {
+    header("location:view_student.php");
+    exit();
+}
 
-     $sql="SELECT * FROM user WHERE id='$id' ";
-     $result=mysqli_query($data,$sql);
-     $info=$result->fetch_assoc();
+$error   = '';
+$success = '';
 
+if (isset($_POST['update'])) {
 
-     if(isset($_POST['update']))
-     {
-        $name=$_POST['name'];
-        $email=$_POST['email'];
-        $phone=$_POST['phone'];
-        $password=$_POST['password'];
+    $name     = trim($_POST['name']);
+    $email    = trim($_POST['email']);
+    $phone    = trim($_POST['phone']);
+    $password = trim($_POST['password']);
 
+    if (empty($name) || empty($email) || empty($phone) || empty($password)) {
+        $error = "All fields are required.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Invalid email address.";
+    } else {
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-        $query="UPDATE user SET username='$name',email='$email',phone='$phone',password='$password' WHERE id='$id' ";
-        $result2=mysqli_query($data,$query);
+        $query = mysqli_prepare($data, "UPDATE user SET username=?, email=?, phone=?, password=? WHERE id=?");
+        mysqli_stmt_bind_param($query, "ssssi", $name, $email, $phone, $hashed, $id);
+        $result2 = mysqli_stmt_execute($query);
 
-        if($result2){
-               header("location: view_student.php");
+        if ($result2) {
+            $_SESSION['message'] = "Student updated successfully.";
+            header("location:view_student.php");
+            exit();
+        } else {
+            $error = "Update failed. Please try again.";
         }
-     }
-
-
+    }
+}
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
-        <meta charset="utf-8">
-        <title>Admin Dashboard</title>
-
-        <?php
-        
-        include 'admin_css.php'
-        ?>
-         <style type="text/css">
-            label
-            {
-                display: inline-block;
-                width:100px;
-                text-align: right;
-                padding-top: 10px;
-                padding-bottom: 10px;
-            }
-            .div_deg{
-                background-color: skyblue;
-                width:400px;
-                padding-bottom: 70px;
-                padding-top: 70px;
-
-            }
-            .btn.btn-success {
-            background-color: blue; 
-            border: none; 
-            color: white; 
-            padding: 10px 20px; 
-            font-size: 16px; 
-            border-radius: 10px; 
-            cursor: pointer;
-            transition: background-color 0.3s ease; 
-            }
-
-           .btn.btn-success:hover {
-            background-color: darkblue; 
-            }
-
-         </style>
-       
-
+    <meta charset="utf-8">
+    <title>Update Student</title>
+    <?php include 'admin_css.php'; ?>
+    <style type="text/css">
+        label {
+            display: inline-block;
+            width: 100px;
+            text-align: right;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        .div_deg {
+            background-color: skyblue;
+            width: 400px;
+            padding-bottom: 70px;
+            padding-top: 70px;
+        }
+        .msg-error { color: red; font-weight: bold; }
+    </style>
 </head>
 <body>
-         <?php
-         include 'admin_sidebar.php';
-         ?>
+    <?php include 'admin_sidebar.php'; ?>
 
-         <div class= "content">
-            <center>
+    <div class="content">
+        <center>
             <h1>Update Student</h1>
 
+            <?php if (!empty($error)): ?>
+                <p class="msg-error"><?php echo htmlspecialchars($error); ?></p>
+            <?php endif; ?>
+
             <div class="div_deg">
-
-                   <form action="#" method="POST">
-
+                <form action="" method="POST">
                     <div>
                         <label>Username</label>
-                        <input type="text" name="name" value="<?php echo "{$info['username']}";?>">
+                        <input type="text" name="name" value="<?php echo htmlspecialchars($info['username']); ?>" required>
                     </div>
                     <div>
                         <label>Email</label>
-                        <input type="email" name="email" value="<?php echo "{$info['email']}";?>">
+                        <input type="email" name="email" value="<?php echo htmlspecialchars($info['email']); ?>" required>
                     </div>
                     <div>
                         <label>Phone</label>
-                        <input type="number" name="phone" value="<?php echo "{$info['phone']}";?>">
+                        <input type="number" name="phone" value="<?php echo htmlspecialchars($info['phone']); ?>" required>
                     </div>
                     <div>
                         <label>Password</label>
-                        <input type="text" name="password" value="<?php echo "{$info['password']}";?>">
+                        <input type="password" name="password" placeholder="Enter new password" required>
                     </div>
                     <div>
-                        <input class="btn btn-success"  type="submit" name="update" value="Update">
+                        <input class="btn btn-success" type="submit" name="update" value="Update">
                     </div>
-
-                   </form>
-
+                </form>
             </div>
-         </center>
-
-         </div>
+        </center>
+    </div>
 </body>
 </html>
-
-
